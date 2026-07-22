@@ -252,10 +252,20 @@ body {
   }
 }
 
-.copying-item { 
+.copying-item {
   [row-id*="detail_event"] {
     [row-id*="detail_order"] {
       @apply cursor-not-allowed;
+    }
+    [row-id^="item_"].ag-row-last.border-dashed::after {
+      content: "";
+      position: absolute;
+      left: -2px;
+      right: 0;
+      bottom: -0.7px;
+      width: 110%;
+      border-bottom: 2px dashed var(--color-main-sky-500);
+      pointer-events: none;
     }
     .ag-details-grid {
       @apply pointer-events-none;
@@ -266,6 +276,9 @@ body {
     .ag-pinned-left-header{
        @apply pointer-events-auto;
     }
+  }
+  [row-id^="item_"].ag-row-last.border-dashed {
+    height: 32px !important;
   }
   .ag-center-cols-container {
     [row-id*="event_"] {
