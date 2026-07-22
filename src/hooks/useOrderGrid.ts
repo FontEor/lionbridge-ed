@@ -414,10 +414,11 @@ export default function useOrderGrid() {
           },
           onRowGroupOpened: (_event: RowGroupOpenedEvent<EventOrderProps>) => {
             const orderRowKey = getOrderRowKey(_event.data!);
+            const { selectedItems, isCopyItem } = useEventStore.getState();
             const hasSelectedItems = Array.from(
-              useEventStore.getState().selectedItems.values(),
+              selectedItems.values(),
             ).some((item) => item.orderRowKey === orderRowKey);
-            if (hasSelectedItems) {
+            if (hasSelectedItems && isCopyItem) {
               _event.api.redrawRows({ rowNodes: [_event.node] });
             }
             resetGridRowHeight();
