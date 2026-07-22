@@ -114,6 +114,7 @@ export default function BookingEventsGrid({
     useEventStore.useSetOrderMeatballTranslateX();
   const isSaving = useEventStore.useIsSaving();
   const queryClient = useQueryClient();
+  const observerRef = useRef<ResizeObserver>(null);
 
   const gridContext = {
     bookingInfo,
@@ -157,7 +158,6 @@ export default function BookingEventsGrid({
         headerName: t("label.date"),
         width: 152,
         cellRenderer: EventDateRenderer,
-        editable: true,
         cellEditor: DateEditor,
         filterParams: {
           valueFormatter: eventDateFormatter,
@@ -179,7 +179,6 @@ export default function BookingEventsGrid({
         },
         comparator: comparatorTime,
         cellEditor: TimeEditor,
-        editable: true,
       },
       {
         field: "endDateTime",
@@ -193,14 +192,12 @@ export default function BookingEventsGrid({
         },
         comparator: comparatorTime,
         cellEditor: TimeEditor,
-        editable: true,
       },
       {
         field: "postAsName",
         headerName: t("label.eventDisplayName"),
         width: 172,
         valueFormatter: ({ value }) => (value ? normalizeSpaces(value) : ""),
-        editable: true,
         cellEditor: "agTextCellEditor",
         cellEditorParams: {
           maxLength: 75,
@@ -216,7 +213,6 @@ export default function BookingEventsGrid({
           valueFormatter: checkboxFilterFormatter,
           comparator: comparatorCheckbox,
         },
-        editable: true,
         onCellValueChanged: onRowValueChanged,
         cellEditor: "agCheckboxCellEditor",
       },
@@ -227,7 +223,6 @@ export default function BookingEventsGrid({
         filterParams: {
           valueFormatter: filterValueFormatter,
         },
-        editable: true,
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
           values: eventTypes?.eventTypeList.map((i) => i.eventTypeCode),
@@ -253,7 +248,6 @@ export default function BookingEventsGrid({
         filterParams: {
           valueFormatter: filterValueFormatter,
         },
-        editable: true,
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
           values: eventSetups?.setupCodeList.map((i) => i.setupTypeCode),
@@ -271,7 +265,6 @@ export default function BookingEventsGrid({
       {
         field: "attendance",
         headerName: t("label.attendance"),
-        editable: true,
         cellEditor: NumberCellEditor,
         cellEditorParams: { maxLength: 10 },
         width: 112,
@@ -287,13 +280,13 @@ export default function BookingEventsGrid({
         cellStyle: {
           textAlign: "right",
         },
+        editable: false,
         cellRenderer: NumberCellRenderer,
       },
       {
         field: "functionRoomCode",
         headerName: t("label.functionRoom"),
         width: 148,
-        editable: true,
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
           values: functionRooms?.functionRoomList.map((i) => i.roomCode),
@@ -317,6 +310,7 @@ export default function BookingEventsGrid({
         field: "eventStatusCode",
         headerName: t("label.status"),
         width: 161,
+        editable: false,
         valueGetter: eventStatusDisplayValueGetter,
         cellRenderer: StatusRenderer,
       },
@@ -335,7 +329,6 @@ export default function BookingEventsGrid({
         cellRendererParams: (params: any) => ({
           disabled: !canEventBeBlocked(params.data.eventCode),
         }),
-        editable: true,
         onCellValueChanged: onRowValueChanged,
         cellEditor: "agCheckboxCellEditor",
       },
@@ -359,7 +352,6 @@ export default function BookingEventsGrid({
           comparator: comparatorCheckbox,
         },
         getQuickFilterText: noopStr,
-        editable: true,
         onCellValueChanged: onRowValueChanged,
         cellEditor: "agCheckboxCellEditor",
       },
@@ -382,7 +374,6 @@ export default function BookingEventsGrid({
           comparator: comparatorCheckbox,
         },
         getQuickFilterText: noopStr,
-        editable: true,
         cellEditor: "agCheckboxCellEditor",
         onCellValueChanged: onRowValueChanged,
       },
@@ -390,7 +381,6 @@ export default function BookingEventsGrid({
         field: "setupMins",
         headerName: t("label.setupMins"),
         width: 108,
-        editable: true,
         cellEditor: NumberCellEditor,
         filterParams: {
           valueFormatter: numberFilterValueFormatter,
@@ -402,7 +392,6 @@ export default function BookingEventsGrid({
         field: "dismantleMins",
         headerName: t("label.dismantleMins"),
         width: 139,
-        editable: true,
         cellEditor: NumberCellEditor,
         filterParams: {
           valueFormatter: numberFilterValueFormatter,
@@ -419,6 +408,7 @@ export default function BookingEventsGrid({
         filter: false,
         getQuickFilterText: noopStr,
         headerClass: "header-center",
+        editable: false,
       },
       {
         suppressNavigable: true,
@@ -427,6 +417,7 @@ export default function BookingEventsGrid({
         cellClass: "empty-fill-column",
         headerClass: "empty-fill-column",
         flex: 1,
+        editable: false,
       },
       {
         field: "",
@@ -434,9 +425,10 @@ export default function BookingEventsGrid({
         minWidth: 1,
         maxWidth: 1,
         cellRenderer: MeatballRenderer,
-        cellRendererParams: { isEvent: true },
+        cellRendererParams: { type: "event" },
         sortable: false,
         filter: false,
+        editable: false,
         pinned: "right",
       },
     ],
@@ -476,6 +468,18 @@ export default function BookingEventsGrid({
       params.api.addEventListener("bodyScroll", () => {
         calculateTranslate();
       });
+      const viewport = document.querySelector(".ag-body-viewport")!;
+      let oldWidth = viewport.clientWidth;
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        const newWidth = entry.contentRect.width;
+        if (newWidth !== oldWidth) {
+          oldWidth = newWidth;
+          calculateTranslate();
+        }
+      });
+      observer.observe(viewport);
+      observerRef.current = observer;
     },
     [setOrderMeatballTranslateX, updateRowData],
   );
@@ -493,13 +497,13 @@ export default function BookingEventsGrid({
         exact: true,
         refetchType: "none",
       });
+      observerRef.current?.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const postSortRowsEvent = useCallback(
     (params: PostSortRowsParams<EventProps>) =>
       postSortRows(params, EVENT_RULES),
-
     [],
   );
 

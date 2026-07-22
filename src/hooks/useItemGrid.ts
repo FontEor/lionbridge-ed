@@ -8,7 +8,6 @@ import {
   type RowClassRules,
   type RowClassParams,
   type RowValueChangedEvent,
-  type RowHeightParams,
 } from "ag-grid-community";
 import { useTranslation } from "react-i18next";
 import {
@@ -96,16 +95,6 @@ export default function useItemGrid() {
         isItemSelected,
       "select-disable": (params) => !isItemSelected(params),
     };
-  }, []);
-
-  const getRowHeight = useCallback((params: RowHeightParams) => {
-    const { isCopyItem } = useEventStore.getState();
-    if (!isCopyItem) return;
-    const { node, api } = params;
-    if (node.rowIndex === api.getDisplayedRowCount() - 1) {
-      return 32;
-    }
-    return;
   }, []);
 
   const onRowValueChanged = useCallback(
@@ -293,7 +282,6 @@ export default function useItemGrid() {
           selectionColumnDef: ItemSelectionColumnDef,
           rowSelection,
           rowClassRules,
-          getRowHeight,
           suppressHorizontalScroll: true,
           defaultColDef: {
             headerTooltipValueGetter: (props) =>
@@ -318,7 +306,6 @@ export default function useItemGrid() {
               },
               node.isSelected() as boolean,
             );
-            event.api.onRowHeightChanged();
           },
           onRowDataUpdated: resetGridRowHeight,
         } as GridOptions,
@@ -339,7 +326,6 @@ export default function useItemGrid() {
     catalogSectionTypes,
     unitOfMeasureTypes,
     onRowValueChanged,
-    getRowHeight,
   ]);
   return {
     itemDetailCellRendererParams,

@@ -42,6 +42,7 @@ import {
   syncItemGuaranteeWhenOrderChange,
   getErrorCellClass,
   tooltipValueGetter,
+  getEditable,
 } from "@/utils/eventsGridUtils";
 import { useEventStore } from "@/stores/eventStore";
 import { noop } from "@/utils/common";
@@ -218,9 +219,9 @@ export default function useOrderGrid() {
       "border-b-main-sky-500! border-b-2! border-dashed!": (params) => {
         if (params.node.detail || params.node.expanded) return false;
         const orderRowKey = getOrderRowKey(params.data);
-        return Array.from(
-          useEventStore.getState().selectedItems.values(),
-        ).some((item) => item.orderRowKey === orderRowKey);
+        return Array.from(useEventStore.getState().selectedItems.values()).some(
+          (item) => item.orderRowKey === orderRowKey,
+        );
       },
     };
   }, []);
@@ -241,6 +242,7 @@ export default function useOrderGrid() {
               field: "eventOrderNumber",
               headerName: t("label.eventOrder"),
               width: 135,
+              editable: false,
             },
             {
               field: "startDateTime",
@@ -248,7 +250,6 @@ export default function useOrderGrid() {
               valueFormatter: eventTimeFormatter,
               width: 120,
               comparator: comparatorTime,
-              editable: true,
               cellEditor: TimeEditor,
             },
             {
@@ -257,14 +258,12 @@ export default function useOrderGrid() {
               valueFormatter: eventTimeFormatter,
               width: 120,
               comparator: comparatorTime,
-              editable: true,
               cellEditor: TimeEditor,
             },
             {
               field: "postAsName",
               headerName: t("label.eventDisplayName"),
               width: 172,
-              editable: true,
               cellEditor: "agTextCellEditor",
               cellEditorParams: {
                 maxLength: 75,
@@ -275,7 +274,6 @@ export default function useOrderGrid() {
               headerName: t("label.display"),
               tooltipValueGetter: noop,
               width: 90,
-              editable: true,
               cellEditor: "agCheckboxCellEditor",
               onCellValueChanged: onRowValueChanged,
             },
@@ -284,7 +282,6 @@ export default function useOrderGrid() {
               headerName: t("label.type"),
               width: 128,
               valueFormatter: eventOrderTypeFormatter,
-              editable: true,
               cellEditor: "agRichSelectCellEditor",
               cellEditorParams: {
                 values: eventOrderTypes?.eventOrderTypeList.map(
@@ -310,7 +307,6 @@ export default function useOrderGrid() {
               cellStyle: {
                 textAlign: "right",
               },
-              editable: true,
               cellEditor: NumberCellEditor,
               cellEditorParams: { maxLength: 10 },
             },
@@ -321,7 +317,6 @@ export default function useOrderGrid() {
               cellStyle: {
                 textAlign: "right",
               },
-              editable: true,
               cellEditor: NumberCellEditor,
               cellEditorParams: { maxLength: 10 },
             },
@@ -332,7 +327,6 @@ export default function useOrderGrid() {
               cellStyle: {
                 textAlign: "right",
               },
-              editable: true,
               cellEditor: NumberCellEditor,
               cellEditorParams: { maxLength: 10 },
             },
@@ -341,6 +335,7 @@ export default function useOrderGrid() {
               headerName: t("heading.revenue"),
               valueGetter: getterOrderRevenueCurrentSum,
               width: 131,
+              editable: false,
               cellStyle: {
                 textAlign: "right",
               },
@@ -349,7 +344,6 @@ export default function useOrderGrid() {
               field: "finalDetailedIndicator",
               headerName: t("label.detailed"),
               width: 161,
-              editable: true,
               cellEditor: "agCheckboxCellEditor",
               onCellValueChanged: onRowValueChanged,
             },
@@ -358,7 +352,6 @@ export default function useOrderGrid() {
               headerName: t("label.tenderType"),
               width: 161,
               valueFormatter: eventOrderTenderTypeFormatter,
-              editable: true,
               cellEditor: "agRichSelectCellEditor",
               cellEditorParams: {
                 values: eventOrderTenderTypes?.eventOrderTenderTypeList.map(
@@ -369,10 +362,6 @@ export default function useOrderGrid() {
                     ? (eventOrderTenderTypes?.eventOrderTenderMap[value] ??
                       value)
                     : null,
-                cellRenderer: SelectCellRenderer,
-                cellRendererParams: {
-                  onCellValueChange: () => {},
-                },
                 searchType: "matchAny",
                 allowTyping: true,
                 valuePlaceholder: t("label.selectEventType"),
@@ -382,11 +371,13 @@ export default function useOrderGrid() {
               field: "diagramUrl",
               headerName: t("label.diagram"),
               width: 161,
+              editable: false,
             },
             {
               suppressNavigable: true,
               sortable: false,
               filter: false,
+              editable: false,
               cellClass: "empty-fill-column",
               headerClass: "empty-fill-column",
               flex: 1,
@@ -397,9 +388,12 @@ export default function useOrderGrid() {
               minWidth: 1,
               maxWidth: 1,
               cellRenderer: MeatballRenderer,
+              cellRendererParams: { type: "order" },
               sortable: false,
               filter: false,
+              editable: false,
               pinned: "right",
+              suppressMovable: true,
             },
           ],
           editType: "fullRow",
@@ -416,9 +410,9 @@ export default function useOrderGrid() {
             resizable: false,
             cellClassRules: getErrorCellClass(),
             tooltipComponent: CustomTooltip,
+            editable: getEditable,
           },
           onRowGroupOpened: (_event: RowGroupOpenedEvent<EventOrderProps>) => {
-            resetGridRowHeight();
             const orderRowKey = getOrderRowKey(_event.data!);
             const hasSelectedItems = Array.from(
               useEventStore.getState().selectedItems.values(),
@@ -426,6 +420,7 @@ export default function useOrderGrid() {
             if (hasSelectedItems) {
               _event.api.redrawRows({ rowNodes: [_event.node] });
             }
+            resetGridRowHeight();
           },
           onRowEditingStarted,
           onRowValueChanged: (event) => {

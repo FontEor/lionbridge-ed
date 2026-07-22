@@ -31,15 +31,12 @@ export default function ItemPasteActionBar() {
     const items = [...selectedItems.values()].map((v) => v.data);
     const targetOrders = Object.values(selectedEventOrders).flat();
     if (items.length === 0 || targetOrders.length === 0) return;
-
     const genId = createIdGenerator();
     const api = useGlobalStore.getState().eventGridRef?.current?.api;
     const affectedEvents: EventProps[] = [];
-
     for (const eventRowKey in selectedEventOrders) {
       const event = api?.getRowNode(eventRowKey)?.data;
       if (!event) continue;
-
       for (const order of selectedEventOrders[eventRowKey]) {
         const newItems = items.map((item) => {
           const newItem = copyEventOrderItem(item, order.startDateTime, genId);
@@ -51,10 +48,8 @@ export default function ItemPasteActionBar() {
       event.dirty = true;
       affectedEvents.push(event);
     }
-
     const validatedEvents = await validateEvents(affectedEvents);
     api?.applyTransaction({ update: validatedEvents });
-
     changeNotification();
     setIsDirty(true);
     clearGridSelections();

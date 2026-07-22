@@ -1,22 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEventStore } from "@/stores/eventStore";
-import { useBookingStore } from "@/stores/bookingStore";
 import { useCallback, useMemo } from "react";
-import type { BookingProps } from "@/types/booking.types";
-import { isEventReadonly } from "@/utils/eventModalUtils";
-import { useGetOrderGrid } from "./useCommon";
+import { getOrderGrid } from "./useCommon";
 import { useGlobalStore } from "@/stores/store";
+import { getEventRowKey, isEventReadonly } from "@/utils/eventsGridUtils";
 
 export const useIsEventsHasReadOnly = () => {
-  const bookingInfo = useBookingStore.useBookingInfo();
-
   const selectedEvents = useEventStore.useSelectedEvents();
 
   const isEventsHasReadOnly = useMemo(() => {
-    return selectedEvents.some((event) =>
-      isEventReadonly(event, bookingInfo as BookingProps),
-    );
-  }, [bookingInfo, selectedEvents]);
+    return selectedEvents.some((event) => isEventReadonly(event));
+  }, [selectedEvents]);
 
   return isEventsHasReadOnly;
 };
@@ -64,20 +58,32 @@ export const useIsMixedSelect = () => {
 
 export function useRedrawSelectedOrders() {
   const selectedEventOrders = useEventStore.useSelectedEventOrders();
-  const getOrderGrid = useGetOrderGrid();
+  const eventGrid = useGlobalStore.useEventGridRef();
   const redrawSelectedOrders = useCallback(() => {
     const eventRowKeys = Object.keys(selectedEventOrders);
+    const eventRows: any[] = [];
     for (const eventRowKey of eventRowKeys) {
-      const rows: any[] = [];
+      const orderRows: any[] = [];
       const detailGrid = getOrderGrid(eventRowKey);
       detailGrid?.api?.forEachNode((node) => {
         if (!node.detail) {
-          rows.push(node);
+          orderRows.push(node);
         }
       });
-      detailGrid?.api?.redrawRows({ rowNodes: rows });
+      eventGrid?.current?.api?.forEachNode((node) => {
+        if (
+          !node.detail &&
+          node.data &&
+          (eventRowKeys.includes(getEventRowKey(node.data)) ||
+            isEventReadonly(node.data))
+        ) {
+          eventRows.push(node);
+        }
+      });
+      detailGrid?.api?.redrawRows({ rowNodes: orderRows });
     }
-  }, [getOrderGrid, selectedEventOrders]);
+    eventGrid?.current?.api.redrawRows({ rowNodes: eventRows });
+  }, [eventGrid, getOrderGrid, selectedEventOrders]);
   return redrawSelectedOrders;
 }
 

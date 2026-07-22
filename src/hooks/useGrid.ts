@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo } from "react";
 import {
   type ColDef,
   type SelectionChangedEvent,
@@ -8,8 +8,6 @@ import {
   type RowGroupOpenedEvent,
   type RowClassRules,
 } from "ag-grid-community";
-import { debounce } from "lodash-es";
-
 import {
   CustomTooltip,
   RevenueCurrencyStatusPanel,
@@ -23,13 +21,13 @@ import {
   getOrderRowKey,
   calculateRowHeightNoChildren,
   tooltipValueGetter,
+  calculateMeatballTranslate,
+  isEventReadonly,
+  getEditable,
 } from "@/utils/eventsGridUtils";
 import { useEventStore } from "@/stores/eventStore";
-
-import { calculateMeatballTranslate } from "@/utils/eventsGridUtils";
 import { zeroWidthSpace } from "@/utils/constants";
 import { useGlobalStore } from "@/stores/store";
-import { isEventReadonly } from "@/utils/eventModalUtils";
 
 type ComparatorFun = (
   valueA: string,
@@ -69,6 +67,7 @@ export default function useGrid() {
       headerTooltipValueGetter: (props) => props.valueFormatted || props.value,
       tooltipValueGetter: tooltipValueGetter,
       resizable: false,
+      editable: getEditable,
       filter: "agSetColumnFilter",
       filterParams: {
         cellHeight: 40,
@@ -117,14 +116,6 @@ export default function useGrid() {
     }
   }, []);
 
-  useEffect(() => {
-    const calculateTranslate = debounce(() => {
-      setOrderMeatballTranslateX(calculateMeatballTranslate());
-    }, 200);
-    window.addEventListener("resize", calculateTranslate);
-    return () => window.removeEventListener("resize", calculateTranslate);
-  }, [setOrderMeatballTranslateX]);
-
   const onRowGroupOpened = useCallback(
     (event: RowGroupOpenedEvent<EventProps>) => {
       //Expanding or collapsing may cause the scroll bar to appear/disappear. should re-calculate translate value
@@ -140,7 +131,7 @@ export default function useGrid() {
         (item) => item.eventRowKey === rowKey,
       );
       if ((isCopyOrder && orders.length > 0) || hasSelectedItems) {
-        //add underline for event in order copy state or when has selected items
+        //add underline for event in order copy state
         gridRef?.current?.api.redrawRows({ rowNodes: [event.node] });
       }
       if (!event.expanded) return;
@@ -162,9 +153,9 @@ export default function useGrid() {
       "border-b-main-sky-500! border-b-2! border-dashed!": (params) => {
         if (!params.data) return false;
         if (params.node.expanded || params.node.detail) return false;
-        const eventRowKey = getEventRowKey(params.data);
         const { isCopyOrder, selectedEventOrders, selectedItems } =
           useEventStore.getState();
+        const eventRowKey = getEventRowKey(params.data);
         const hasSelectedOrders =
           isCopyOrder && (selectedEventOrders[eventRowKey] ?? []).length > 0;
         const hasSelectedItems = Array.from(selectedItems.values()).some(
