@@ -74,6 +74,10 @@ import { useGlobalStore } from "@/stores/store";
 import NumberCellRenderer from "./components/NumberCellRenderer";
 import useOrderGrid from "@/hooks/useOrderGrid";
 import clsx from "clsx";
+import {
+  useRedrawSelectedItems,
+  useRedrawSelectedOrders,
+} from "@/hooks/useGridSelect";
 
 interface BookingEventsGridProps {
   bookingInfo: BookingProps;
@@ -141,6 +145,11 @@ export default function BookingEventsGrid({
   const { eventOrderDetailCellRendererParams } = useOrderGrid();
   const isCopyOrder = useEventStore.useIsCopyOrder();
   const isCopyItem = useEventStore.useIsCopyItem();
+  const setIsCopyOrder = useEventStore.useSetIsCopyOrder();
+  const setIsCopyItem = useEventStore.useSetIsCopyItem();
+  const clearSelectedOrders = useEventStore.useClearSelectedOrders();
+  const redrawSelectedItems = useRedrawSelectedItems();
+  const redrawSelectedOrders = useRedrawSelectedOrders();
   const colDefs = useMemo<ColDef[]>(
     () => [
       {
@@ -516,6 +525,40 @@ export default function BookingEventsGrid({
       });
     });
   }, [isCopyItem]);
+
+  useEffect(() => {
+    if (!isCopyOrder && !isCopyItem) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (isCopyItem) {
+          setIsCopyItem(false);
+          redrawSelectedItems();
+          gridRef.current?.api?.forEachDetailGridInfo(
+            (detailGridInfo) => {
+              detailGridInfo.api?.deselectAll();
+            },
+          );
+          gridRef.current?.api?.deselectAll();
+          clearSelectedOrders();
+        }
+        if (isCopyOrder) {
+          setIsCopyOrder(false);
+          redrawSelectedOrders();
+          gridRef.current?.api?.deselectAll();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    isCopyOrder,
+    isCopyItem,
+    setIsCopyItem,
+    setIsCopyOrder,
+    clearSelectedOrders,
+    redrawSelectedItems,
+    redrawSelectedOrders,
+  ]);
 
   return (
     <div className="flex grow flex-col">
