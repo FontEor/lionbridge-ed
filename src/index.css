@@ -257,9 +257,6 @@ body {
     [row-id*="detail_order"] {
       @apply cursor-not-allowed;
     }
-    .ag-center-cols-viewport:has(.ag-row-last.border-dashed){
-      border-bottom: 2px dashed var(--color-main-sky-500) !important;
-    }
     .ag-details-grid {
       @apply pointer-events-none;
       .ag-row-group-indent-0 {

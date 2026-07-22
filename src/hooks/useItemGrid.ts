@@ -7,6 +7,8 @@ import {
   type GridOptions,
   type RowClassRules,
   type RowClassParams,
+  type RowValueChangedEvent,
+  type RowHeightParams,
 } from "ag-grid-community";
 import { useTranslation } from "react-i18next";
 import {
@@ -16,12 +18,13 @@ import {
 import {
   CustomTooltip,
   MeatballRenderer,
+  TimeEditor,
+  NumberCellEditor,
 } from "@/pages/bookings/events/components";
 import {
   ItemSelectionColumnDef,
   rowSelection,
   getItemRowId,
-  getItemRowKey,
   eventTimeFormatter,
   moneyFormatter,
   createValueFormatters,
@@ -30,17 +33,32 @@ import {
   getOrderRowKey,
   getErrorCellClass,
   tooltipValueGetter,
+  getEditable,
+  updateRowInList,
+  getItemRowKey,
 } from "@/utils/eventsGridUtils";
-import { formatItemName, formatItemDesc } from "@/utils/itemModalUtils";
+import {
+  formatItemName,
+  formatItemDesc,
+  setItemName,
+} from "@/utils/itemModalUtils";
+import { validateItem } from "@/utils/validation";
 import { NodeLevelMap } from "@/utils/constants";
 import { useEventOrderData } from "./useEvents";
 import { useEventStore } from "@/stores/eventStore";
 import useGridUpdate from "./useGridUpdate";
+import { updateEventTimeDate } from "@/utils/dateHelpers";
 
 export default function useItemGrid() {
   const { t } = useTranslation();
+  const setIsDirty = useEventStore.useSetIsDirty();
   const setSelectedItems = useEventStore.useSetSelectedItems();
-  const { resetGridRowHeight } = useGridUpdate();
+  const {
+    resetGridRowHeight,
+    setEventDataDirty,
+    getEventOrderItemData,
+    updateEventOrderData,
+  } = useGridUpdate();
 
   const { itemTopics, unitOfMeasureTypes, catalogSectionTypes } =
     useEventOrderData();
@@ -80,18 +98,61 @@ export default function useItemGrid() {
     };
   }, []);
 
+  const getRowHeight = useCallback((params: RowHeightParams) => {
+    const { isCopyItem } = useEventStore.getState();
+    if (!isCopyItem) return;
+    const { node, api } = params;
+    if (node.rowIndex === api.getDisplayedRowCount() - 1) {
+      return 32;
+    }
+    return;
+  }, []);
+
+  const onRowValueChanged = useCallback(
+    async (params: RowValueChangedEvent) => {
+      setItemName(params.data, params.data.displayName);
+      const { order, event } = getEventOrderItemData(
+        params.node.id!,
+        params.context.orderRowKey,
+        params.context.eventRowKey,
+      );
+
+      params.data.serveDtTm = updateEventTimeDate(
+        params.data.serveDtTm,
+        event?.eventDate,
+      );
+
+      const validatedItem = await validateItem(params.data, order);
+      setEventDataDirty(params.context?.eventRowKey);
+      order.items = updateRowInList(order.items!, validatedItem, getItemRowKey);
+      updateEventOrderData(params.context?.eventRowKey, order!);
+      params.api.applyTransaction({
+        update: [{ ...validatedItem }],
+      });
+      setIsDirty(true);
+    },
+    [
+      getEventOrderItemData,
+      updateEventOrderData,
+      setEventDataDirty,
+      setIsDirty,
+    ],
+  );
+
   const itemDetailCellRendererParams = useMemo(() => {
     return (params: ICellRendererParams) => {
       return {
         detailGridOptions: {
           context: {
             orderRowKey: getOrderRowKey(params.data),
+            readonly: params.data.isReadOnly,
             ...params.context,
           },
           getRowId: getItemRowId,
           columnDefs: [
             {
               headerName: t("label.displayName"),
+              field: "displayName",
               width: 150,
               valueGetter: formatItemName,
             },
@@ -99,13 +160,15 @@ export default function useItemGrid() {
               headerName: t("label.description"),
               width: 353,
               valueGetter: formatItemDesc,
+              editable: false,
             },
             {
               field: "serveDtTm",
               headerName: t("label.serveTime"),
-              width: 108,
+              width: 120,
               valueFormatter: eventTimeFormatter,
               comparator: comparatorTime,
+              cellEditor: TimeEditor,
             },
             {
               field: "quantityOrdered",
@@ -114,6 +177,8 @@ export default function useItemGrid() {
               cellStyle: {
                 textAlign: "right",
               },
+              cellEditor: NumberCellEditor,
+              cellEditorParams: { maxLength: 10 },
             },
             {
               field: "quantityGuaranteed",
@@ -122,6 +187,8 @@ export default function useItemGrid() {
               cellStyle: {
                 textAlign: "right",
               },
+              cellEditor: NumberCellEditor,
+              cellEditorParams: { maxLength: 10 },
             },
             {
               field: "itemPrice",
@@ -131,38 +198,78 @@ export default function useItemGrid() {
                 textAlign: "right",
               },
               valueFormatter: moneyFormatter,
+              cellEditor: NumberCellEditor,
+              cellEditorParams: { maxLength: 10 },
             },
             {
               field: "sectionLookupSid",
               headerName: t("label.section"),
               width: 97,
               valueFormatter: sectionFormatter,
+              cellEditor: "agRichSelectCellEditor",
+              cellEditorParams: {
+                values: catalogSectionTypes?.catalogSectionList.map(
+                  (i) => i.sectionLookupSid,
+                ),
+                formatValue: (value: number) =>
+                  value
+                    ? (catalogSectionTypes?.catalogSectionsMap[value] ?? value)
+                    : null,
+                searchType: "matchAny",
+                allowTyping: true,
+              },
             },
             {
               field: "pricePointLookupSid",
               headerName: t("label.unitOfMeasure"),
               width: 168,
               valueFormatter: uomFormatter,
+              cellEditor: "agRichSelectCellEditor",
+              cellEditorParams: {
+                values: unitOfMeasureTypes?.unitOfMeasureList.map(
+                  (i) => i.pricePointLookupSid,
+                ),
+                formatValue: (value: number) =>
+                  value
+                    ? (unitOfMeasureTypes?.unitOfMeasureMap[value] ?? value)
+                    : null,
+                searchType: "matchAny",
+                allowTyping: true,
+              },
             },
             {
               field: "display",
               headerName: t("label.displayItem"),
               width: 144,
+              cellEditor: "agCheckboxCellEditor",
+              onCellValueChanged: onRowValueChanged,
             },
             {
               field: "displayQuantity",
               headerName: t("label.displayQuantity"),
               width: 179,
+              cellEditor: "agCheckboxCellEditor",
+              onCellValueChanged: onRowValueChanged,
             },
             {
               field: "topicSids",
               headerName: t("label.topics"),
               valueFormatter: createArrayValueFormatter(itemTopics?.topicsMap),
+              cellEditor: "agRichSelectCellEditor",
+              cellEditorParams: {
+                values: itemTopics?.topicsList.map((i) => i.itemTopicLookupSid),
+                formatValue: (value: number) =>
+                  value ? (itemTopics?.topicsMap[value] ?? value) : null,
+                searchType: "matchAny",
+                allowTyping: true,
+                multiSelect: true,
+              },
             },
             {
               suppressNavigable: true,
               sortable: false,
               filter: false,
+              editable: false,
               cellClass: "empty-fill-column",
               headerClass: "empty-fill-column",
               flex: 1,
@@ -173,14 +280,20 @@ export default function useItemGrid() {
               minWidth: 1,
               maxWidth: 1,
               cellRenderer: MeatballRenderer,
+              cellRendererParams: { type: "item" },
               sortable: false,
               filter: false,
+              editable: false,
               pinned: "right",
             },
           ],
+          editType: "fullRow",
+          popupParent: document.querySelector("body"),
+          stopEditingWhenCellsLoseFocus: true,
           selectionColumnDef: ItemSelectionColumnDef,
           rowSelection,
           rowClassRules,
+          getRowHeight,
           suppressHorizontalScroll: true,
           defaultColDef: {
             headerTooltipValueGetter: (props) =>
@@ -189,8 +302,10 @@ export default function useItemGrid() {
             tooltipValueGetter: tooltipValueGetter,
             resizable: false,
             cellClassRules: getErrorCellClass(),
+            editable: getEditable,
           },
           onGridReady: onGridReady,
+          onRowValueChanged: onRowValueChanged,
           onRowSelected: (event: RowSelectedEvent<EventOrderItemProps>) => {
             const { node, data, context } = event;
             setSelectedItems(
@@ -203,6 +318,7 @@ export default function useItemGrid() {
               },
               node.isSelected() as boolean,
             );
+            event.api.onRowHeightChanged();
           },
           onRowDataUpdated: resetGridRowHeight,
         } as GridOptions,
@@ -220,6 +336,10 @@ export default function useItemGrid() {
     onGridReady,
     resetGridRowHeight,
     rowClassRules,
+    catalogSectionTypes,
+    unitOfMeasureTypes,
+    onRowValueChanged,
+    getRowHeight,
   ]);
   return {
     itemDetailCellRendererParams,
