@@ -21,6 +21,7 @@ export default function ItemPasteActionBar() {
   const selectedEventOrderInfo = useSelectedOrderInfo();
   const eventGridRef = useGlobalStore.useEventGridRef();
   const setIsCopyItem = useEventStore.useSetIsCopyItem();
+  const clearSelectedOrders = useEventStore.useClearSelectedOrders();
   const redrawSelectedItems = useRedrawSelectedItems();
   const clearGridSelections = useClearGridSelections();
   const changeNotification = useChangesNotification();
@@ -92,7 +93,13 @@ export default function ItemPasteActionBar() {
           onClick={() => {
             setIsCopyItem(false);
             redrawSelectedItems();
+            eventGridRef?.current?.api.forEachDetailGridInfo(
+              (detailGridInfo) => {
+                detailGridInfo.api?.deselectAll();
+              },
+            );
             eventGridRef?.current?.api.deselectAll();
+            clearSelectedOrders();
           }}
         >
           {t("button.cancelCopy")}
