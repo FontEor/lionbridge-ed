@@ -504,40 +504,15 @@ export default function BookingEventsGrid({
   );
 
   useEffect(() => {
-    const api = gridRef.current?.api;
-    if (!api) return;
-    const selectedItems = useEventStore.getState().selectedItems;
-    api.forEachNode((node) => {
-      node.selectable = !isCopyItem;
-    });
-    api.refreshCells({ force: true });
-    api.forEachDetailGridInfo((orderGridInfo) => {
-      orderGridInfo.api?.refreshCells({ force: true });
-      orderGridInfo.api?.forEachDetailGridInfo((itemGridInfo) => {
-        itemGridInfo.api?.forEachNode((node) => {
-          if (isCopyItem) {
-            node.selectable = selectedItems.has(node.id as string);
-          } else {
-            node.selectable = true;
-          }
-        });
-        itemGridInfo.api?.refreshCells({ force: true });
-      });
-    });
-  }, [isCopyItem]);
-
-  useEffect(() => {
     if (!isCopyOrder && !isCopyItem) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         if (isCopyItem) {
           setIsCopyItem(false);
           redrawSelectedItems();
-          gridRef.current?.api?.forEachDetailGridInfo(
-            (detailGridInfo) => {
-              detailGridInfo.api?.deselectAll();
-            },
-          );
+          gridRef.current?.api?.forEachDetailGridInfo((detailGridInfo) => {
+            detailGridInfo.api?.deselectAll();
+          });
           gridRef.current?.api?.deselectAll();
           clearSelectedOrders();
         }
