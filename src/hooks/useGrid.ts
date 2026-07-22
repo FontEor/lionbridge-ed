@@ -44,15 +44,6 @@ export default function useGrid() {
   const gridRef = useGlobalStore.useEventGridRef();
   const setOrderMeatballTranslateX =
     useEventStore.useSetOrderMeatballTranslateX();
-  const isCopyItem = useEventStore.useIsCopyItem();
-
-  const rowSelectionConfig = useMemo(
-    () => ({
-      ...rowSelection,
-      isRowSelectable: () => !isCopyItem,
-    }),
-    [isCopyItem],
-  );
 
   const getComparator = useCallback(
     (comparatorFun: ComparatorFun) => {
@@ -221,7 +212,7 @@ export default function useGrid() {
   );
 
   return {
-    rowSelection: rowSelectionConfig,
+    rowSelection,
     statusBar,
     defaultColDef,
     handleSortChanged,
