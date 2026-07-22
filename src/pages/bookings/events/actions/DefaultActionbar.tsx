@@ -13,7 +13,7 @@ import { useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { bookingKey, eventsKey } from "@/hooks";
 import { debounce } from "lodash-es";
-import AddEvent from "./EventDrawer";
+import AddEvent from "./event/EventDrawer";
 import { isEventBlocked } from "@/utils/eventsGridUtils";
 import useEventActions from "@/hooks/useEventActions";
 import { useAlertStore } from "@/stores/store";
@@ -196,12 +196,7 @@ export default function DefaultActionBar({
           {t("button.saveAll")}
         </Button>
       </div>
-      <AddEvent
-        open={open}
-        onClose={handleClose}
-        type="create"
-        gridRef={gridRef}
-      />
+      <AddEvent open={open} onClose={handleClose} type="create" />
     </div>
   );
 }
