@@ -266,14 +266,6 @@ body {
         @apply border-none!;
       }
     }
-    &:not(.ag-cell-last-left-pinned) {
-      @apply cursor-not-allowed;
-    }
-    .ag-pinned-left-cols-container [row-id*="order_"] {
-      .ag-row-group {
-        @apply pointer-events-auto;
-      }
-    }
     .ag-pinned-left-header{
        @apply pointer-events-auto;
     }
