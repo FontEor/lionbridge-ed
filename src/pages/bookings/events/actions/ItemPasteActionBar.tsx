@@ -41,9 +41,11 @@ export default function ItemPasteActionBar() {
       if (!event) continue;
 
       for (const order of selectedEventOrders[eventRowKey]) {
-        const newItems = items.map((item) =>
-          copyEventOrderItem(item, order.startDateTime, genId),
-        );
+        const newItems = items.map((item) => {
+          const newItem = copyEventOrderItem(item, order.startDateTime, genId);
+          newItem.serveDtTm = order.startDateTime;
+          return newItem;
+        });
         order.items = [...(order.items ?? []), ...newItems];
       }
       event.dirty = true;
