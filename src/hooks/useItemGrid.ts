@@ -6,6 +6,7 @@ import {
   type ICellRendererParams,
   type GridOptions,
   type RowClassRules,
+  type RowClassParams,
 } from "ag-grid-community";
 import { useTranslation } from "react-i18next";
 import {
@@ -68,20 +69,14 @@ export default function useItemGrid() {
   }, []);
 
   const rowClassRules = useMemo<RowClassRules>(() => {
+    const isItemSelected = (params: RowClassParams) => {
+      const { isCopyItem, selectedItems } = useEventStore.getState();
+      return isCopyItem && selectedItems.has(getItemRowKey(params.data));
+    };
     return {
       "border-main-sky-500! border-2! border-dashed shadow-[0px_-2px_0px] shadow-main-sky-100":
-        (params) => {
-          if (!useEventStore.getState().isCopyItem) return false;
-          return useEventStore
-            .getState()
-            .selectedItems.has(getItemRowKey(params.data));
-        },
-      "select-disable": (params) => {
-        if (!useEventStore.getState().isCopyItem) return false;
-        return !useEventStore
-          .getState()
-          .selectedItems.has(getItemRowKey(params.data));
-      },
+        isItemSelected,
+      "select-disable": (params) => !isItemSelected(params),
     };
   }, []);
 
@@ -184,15 +179,7 @@ export default function useItemGrid() {
             },
           ],
           selectionColumnDef: ItemSelectionColumnDef,
-          rowSelection: {
-            ...rowSelection,
-            isRowSelectable: (node) => {
-              if (!useEventStore.getState().isCopyItem) return true;
-              return useEventStore
-                .getState()
-                .selectedItems.has(node.id as string);
-            },
-          },
+          rowSelection,
           rowClassRules,
           suppressHorizontalScroll: true,
           defaultColDef: {
