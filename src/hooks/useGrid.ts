@@ -123,14 +123,17 @@ export default function useGrid() {
         () => setOrderMeatballTranslateX(calculateMeatballTranslate()),
         200,
       );
-      const { selectedEventOrders, isCopyOrder, selectedItems } =
+      const { selectedEventOrders, isCopyOrder, selectedItems, isCopyItem } =
         useEventStore.getState();
       const rowKey = getEventRowKey(event.data!);
       const orders = selectedEventOrders[rowKey] ?? [];
       const hasSelectedItems = Array.from(selectedItems.values()).some(
         (item) => item.eventRowKey === rowKey,
       );
-      if ((isCopyOrder && orders.length > 0) || hasSelectedItems) {
+      if (
+        (isCopyOrder && orders.length > 0) ||
+        (hasSelectedItems && isCopyItem)
+      ) {
         //add underline for event in order copy state
         gridRef?.current?.api.redrawRows({ rowNodes: [event.node] });
       }
