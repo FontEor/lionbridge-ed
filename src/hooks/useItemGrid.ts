@@ -91,7 +91,7 @@ export default function useItemGrid() {
       return isCopyItem && selectedItems.has(getItemRowKey(params.data));
     };
     return {
-      "border-main-sky-500! border-2! border-dashed shadow-[0px_-2px_0px] shadow-main-sky-100":
+      "border-main-sky-500! border-y-2! border-l-2! copied border-dashed shadow-[0px_-2px_0px] shadow-main-sky-100":
         isItemSelected,
       "select-disable": (params) => !isItemSelected(params),
     };

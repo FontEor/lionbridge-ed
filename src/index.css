@@ -197,7 +197,7 @@ body {
 }
 .ag-pinned-right-cols-container {
   & > .copied.ag-row-selected {
-    @apply border-r-2! border-r-main-sky-700!;
+    @apply border-r-2! border-r-main-sky-700! border-l-0!;
   }
 }
 .ag-center-cols-container {
@@ -256,6 +256,9 @@ body {
   [row-id*="detail_event"] {
     [row-id*="detail_order"] {
       @apply cursor-not-allowed;
+      .ag-pinned-right-cols-container {
+        @apply w-0.5! max-w-0.5!;
+      }
     }
     [row-id^="item_"].ag-row-last.border-dashed::after {
       content: "";
