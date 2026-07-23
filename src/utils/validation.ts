@@ -41,11 +41,9 @@ export const validateOrder = async (order: EventOrderProps) => {
   return _order;
 };
 
-export const validateOrders = async (orders: EventOrderProps[]) => {
+export const validateOrders = async (orders: EventOrderProps[] = []) => {
   const newOrders = await Promise.all(
-    orders.map(async (order) => {
-      return await validateOrder(order);
-    }),
+    orders.map((order) => validateOrder(order)),
   );
   return newOrders;
 };
@@ -68,11 +66,9 @@ export const validateEvent = async (event: GridEventProps) => {
   return _event;
 };
 
-export const validateEvents = async (events: GridEventProps[]) => {
+export const validateEvents = async (events: GridEventProps[] = []) => {
   const newEvents = await Promise.all(
-    events.map(async (event) => {
-      return await validateEvent(event);
-    }),
+    events.map((event) => validateEvent(event)),
   );
   return newEvents;
 };

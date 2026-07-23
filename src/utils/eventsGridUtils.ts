@@ -8,12 +8,18 @@ import type {
   SelectionColumnDef,
   GetRowIdParams,
   PostSortRowsParams,
+  CellClassRules,
+  ColDef,
+  ITooltipParams,
+  EditableCallbackParams,
 } from "ag-grid-community";
 import { isNumber } from "lodash-es";
 import {
   formatDateWithLocale,
   formatLocalDate,
   syncCopiedDatetime,
+  syncEndDateTime,
+  isPastDate,
 } from "@/utils/dateHelpers";
 import {
   EVENT_TYPE_DEPARTMENT_NOTES,
@@ -33,6 +39,11 @@ import { compareFun, toBoolean, formatAmount } from "@/utils/common";
 import { type ArraySchema, type ValidationError } from "yup";
 import BigNumber from "bignumber.js";
 import dayjs from "dayjs";
+import { useBookingStore } from "@/stores";
+
+export const EventRowKeyPrefix = "event_";
+export const OrderRowKeyPrefix = "order_";
+export const ItemRowKeyPrefix = "item_";
 
 export const EventRevenueCurrentKeys = [
   "currentBeverageRevenue",
@@ -209,7 +220,7 @@ export const comparatorTime = (valueA: string, valueB: string) => {
   return compareFun(date24A, date24B);
 };
 
-export const getErrorCellClass = () => {
+export const getErrorCellClass = (): CellClassRules => {
   return {
     "!border-status-error": (params: CellClassParams) =>
       params.data.errors &&
@@ -392,13 +403,13 @@ export const getItemRowId = (params: GetRowIdParams) =>
   getItemRowKey(params.data);
 
 export const getEventRowKey = (data: EventProps) =>
-  `event_${data?.eventNumber || data?.id}`;
+  `${EventRowKeyPrefix}${data?.eventNumber || data?.id}`;
 
 export const getOrderRowKey = (data: EventOrderProps) =>
-  `order_${data?.eventOrderNumber || data?.id}`;
+  `${OrderRowKeyPrefix}${data?.eventOrderNumber || data?.id}`;
 
 export const getItemRowKey = (data: EventOrderItemProps) =>
-  `item_${data?.eventOrderItemSid || data?.id}`;
+  `${ItemRowKeyPrefix}${data?.eventOrderItemSid || data?.id}`;
 
 export const isEventRowMaster = (dataItem: EventProps) => {
   return dataItem && dataItem.eventOrders
@@ -432,6 +443,14 @@ export const GroupSelectionColumnDef: SelectionColumnDef = {
   width: 64,
   cellRenderer: "agGroupCellRenderer",
   pinned: "left",
+  cellRendererParams: {
+    suppressDoubleClickExpand: true,
+  },
+};
+
+export const EventSelectionColumnDef: SelectionColumnDef = {
+  ...GroupSelectionColumnDef,
+  headerClass: "event-selection",
 };
 
 export const rowSelection: RowSelectionOptions = {
@@ -478,6 +497,7 @@ export const syncItemServeTimeWhenOrderChange = (
   old_order: EventOrderProps,
   new_order: EventOrderProps,
 ) => {
+  if (!old_order) return new_order;
   if (old_order.startDateTime !== new_order.startDateTime) {
     new_order.items = new_order.items?.map((i) => {
       i.serveDtTm =
@@ -490,10 +510,45 @@ export const syncItemServeTimeWhenOrderChange = (
   return { ...old_order, ...new_order };
 };
 
+export const syncItemAttendanceWhenOrderChange = (
+  old_order: EventOrderProps,
+  new_order: EventOrderProps,
+) => {
+  if (!old_order) return new_order;
+  if (old_order.attendanceEstimate !== new_order.attendanceEstimate) {
+    new_order.items = new_order.items?.map((i) => {
+      i.quantityOrdered =
+        i.quantityOrdered === old_order.attendanceEstimate
+          ? new_order.attendanceEstimate
+          : i.quantityOrdered;
+      return { ...i };
+    });
+  }
+  return { ...old_order, ...new_order };
+};
+
+export const syncItemGuaranteeWhenOrderChange = (
+  old_order: EventOrderProps,
+  new_order: EventOrderProps,
+) => {
+  if (!old_order) return new_order;
+  if (old_order.attendanceGuarantee !== new_order.attendanceGuarantee) {
+    new_order.items = new_order.items?.map((i) => {
+      i.quantityGuaranteed =
+        i.quantityGuaranteed === old_order.attendanceGuarantee
+          ? new_order.attendanceGuarantee
+          : i.quantityGuaranteed;
+      return { ...i };
+    });
+  }
+  return { ...old_order, ...new_order };
+};
+
 export const syncOrderTimeWhenEventChange = (
   old_event: EventProps,
   new_event: EventProps,
 ) => {
+  if (!old_event) return new_event;
   if (old_event.eventDate !== new_event.eventDate) {
     new_event.eventOrders = old_event.eventOrders?.map((order) => {
       syncEventsCopiedDateTime(new_event.eventDate, order, [
@@ -537,6 +592,40 @@ export function syncEventsCopiedDateTime<T extends object>(
   for (const key of keys) {
     if (obj[key]) {
       obj[key] = syncCopiedDatetime(date, obj[key] as string) as T[keyof T];
+      if (key === "endDateTime" || key === "serveDtTm") {
+        obj[key] = syncEndDateTime(obj[key] as string) as T[keyof T];
+      }
     }
   }
+}
+
+export function tooltipValueGetter(props: ITooltipParams) {
+  const colDef = props.colDef as ColDef;
+  const field = colDef?.field as keyof GridEventProps;
+  if (!field) return props.valueFormatted || props.value;
+
+  const errorMessage = props.data?.errors?.[field];
+  return errorMessage || props.valueFormatted || props.value;
+}
+
+export const isBookingReadonly = () => {
+  return (
+    useBookingStore.getState().bookingInfo?.status === BookingStatus.Actual
+  );
+};
+
+export const isEventReadonly = (event: GridEventProps) => {
+  return isBookingReadonly() || isPastDate(event.eventDate);
+};
+
+export function getEditable(params: EditableCallbackParams) {
+  const { node, data, context } = params;
+  if (node.id?.includes(EventRowKeyPrefix)) {
+    return !isEventReadonly(data);
+  }
+  if (node.id?.includes(OrderRowKeyPrefix)) {
+    return !data?.isReadOnly;
+  }
+
+  return !context.readonly;
 }
