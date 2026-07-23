@@ -8,6 +8,7 @@ import {
   getOrderRowKey,
   isEventReadonly,
 } from "@/utils/eventsGridUtils";
+import type { GridApi, IRowNode } from "ag-grid-community";
 
 export const useIsEventsHasReadOnly = () => {
   const selectedEvents = useEventStore.useSelectedEvents();
@@ -96,33 +97,42 @@ export function useRedrawSelectedItems() {
   const gridRef = useGlobalStore.useEventGridRef();
   const redrawSelectedItems = useCallback(() => {
     const api = gridRef?.current?.api;
-    if (!api) return;
-    api.forEachDetailGridInfo((orderGridInfo) => {
-      const orderRows: any[] = [];
-      orderGridInfo.api?.forEachNode((node) => {
-        if (!node.detail && node.data) {
-          const orderRowKey = getOrderRowKey(node.data);
-          const hasSelectedItems = Array.from(selectedItems.values()).some(
-            (item) => item.orderRowKey === orderRowKey,
-          );
-          if (hasSelectedItems) {
-            orderRows.push(node);
-          }
-        }
+    if (!api || selectedItems.size === 0) return;
+
+    const eventRowKeys = new Set<string>();
+    const orderRowKeys = new Set<string>();
+    selectedItems.forEach((item) => {
+      eventRowKeys.add(item.eventRowKey);
+      orderRowKeys.add(item.orderRowKey);
+    });
+
+    const redrawMatchingRows = (
+      gridApi: GridApi | undefined,
+      shouldRedraw: (node: IRowNode) => boolean,
+    ) => {
+      const rows: IRowNode[] = [];
+      gridApi?.forEachNode((node) => {
+        if (shouldRedraw(node)) rows.push(node);
       });
-      if (orderRows.length > 0) {
-        orderGridInfo.api?.redrawRows({ rowNodes: orderRows });
-      }
+      if (rows.length > 0) gridApi?.redrawRows({ rowNodes: rows });
+    };
+
+    redrawMatchingRows(api, (node) =>
+      !!node.data &&
+      !node.detail &&
+      eventRowKeys.has(getEventRowKey(node.data)),
+    );
+
+    api.forEachDetailGridInfo((orderGridInfo) => {
+      redrawMatchingRows(orderGridInfo.api, (node) =>
+        !!node.data &&
+        !node.detail &&
+        orderRowKeys.has(getOrderRowKey(node.data)),
+      );
       orderGridInfo.api?.forEachDetailGridInfo((itemGridInfo) => {
-        const rows: any[] = [];
-        itemGridInfo.api?.forEachNode((node) => {
-          if (selectedItems.has(node.id as string)) {
-            rows.push(node);
-          }
-        });
-        if (rows.length > 0) {
-          itemGridInfo.api?.redrawRows({ rowNodes: rows });
-        }
+        redrawMatchingRows(itemGridInfo.api, (node) =>
+          selectedItems.has(node.id as string),
+        );
       });
     });
   }, [gridRef, selectedItems]);
