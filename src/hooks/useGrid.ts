@@ -156,14 +156,16 @@ export default function useGrid() {
       "border-b-main-sky-500! border-b-2! border-dashed!": (params) => {
         if (!params.data) return false;
         if (params.node.expanded || params.node.detail) return false;
-        const { isCopyOrder, selectedEventOrders, selectedItems } =
+        const { isCopyOrder, isCopyItem, selectedEventOrders, selectedItems } =
           useEventStore.getState();
         const eventRowKey = getEventRowKey(params.data);
         const hasSelectedOrders =
           isCopyOrder && (selectedEventOrders[eventRowKey] ?? []).length > 0;
-        const hasSelectedItems = Array.from(selectedItems.values()).some(
-          (item) => item.eventRowKey === eventRowKey,
-        );
+        const hasSelectedItems =
+          isCopyItem &&
+          Array.from(selectedItems.values()).some(
+            (item) => item.eventRowKey === eventRowKey,
+          );
         return hasSelectedOrders || hasSelectedItems;
       },
       "select-disable": (params) => {

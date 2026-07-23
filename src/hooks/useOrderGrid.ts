@@ -209,12 +209,13 @@ export default function useOrderGrid() {
       "border-y-main-sky-500! border-y-2! copied border-dashed shadow-[0px_-2px_0px] shadow-main-sky-100":
         (params) => {
           const eventRowKey = params.context.eventRowKey;
-          if (!useEventStore.getState().isCopyOrder) return false;
-          return useEventStore
-            .getState()
-            .selectedEventOrders[
-              eventRowKey
-            ]?.some((order) => getOrderRowKey(order) === getOrderRowKey(params.data) && !params.node.detail);
+          const { isCopyOrder, selectedEventOrders } = useEventStore.getState();
+          if (!isCopyOrder) return false;
+          return selectedEventOrders[eventRowKey]?.some(
+            (order) =>
+              getOrderRowKey(order) === getOrderRowKey(params.data) &&
+              !params.node.detail,
+          );
         },
       "border-b-main-sky-500! border-b-2! border-dashed!": (params) => {
         const { isCopyItem, selectedItems } = useEventStore.getState();
