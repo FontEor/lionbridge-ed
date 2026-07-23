@@ -217,14 +217,11 @@ export default function useOrderGrid() {
             ]?.some((order) => getOrderRowKey(order) === getOrderRowKey(params.data) && !params.node.detail);
         },
       "border-b-main-sky-500! border-b-2! border-dashed!": (params) => {
-        if (
-          params.node.detail ||
-          params.node.expanded ||
-          !useEventStore.getState().isCopyItem
-        )
+        const { isCopyItem, selectedItems } = useEventStore.getState();
+        if (params.node.detail || params.node.expanded || !isCopyItem)
           return false;
         const orderRowKey = getOrderRowKey(params.data);
-        return Array.from(useEventStore.getState().selectedItems.values()).some(
+        return Array.from(selectedItems.values()).some(
           (item) => item.orderRowKey === orderRowKey,
         );
       },
