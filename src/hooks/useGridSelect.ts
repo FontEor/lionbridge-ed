@@ -3,7 +3,11 @@ import { useEventStore } from "@/stores/eventStore";
 import { useCallback, useMemo } from "react";
 import { getOrderGrid } from "./useCommon";
 import { useGlobalStore } from "@/stores/store";
-import { getEventRowKey, isEventReadonly } from "@/utils/eventsGridUtils";
+import {
+  getEventRowKey,
+  getOrderRowKey,
+  isEventReadonly,
+} from "@/utils/eventsGridUtils";
 
 export const useIsEventsHasReadOnly = () => {
   const selectedEvents = useEventStore.useSelectedEvents();
@@ -94,6 +98,21 @@ export function useRedrawSelectedItems() {
     const api = gridRef?.current?.api;
     if (!api) return;
     api.forEachDetailGridInfo((orderGridInfo) => {
+      const orderRows: any[] = [];
+      orderGridInfo.api?.forEachNode((node) => {
+        if (!node.detail && node.data) {
+          const orderRowKey = getOrderRowKey(node.data);
+          const hasSelectedItems = Array.from(selectedItems.values()).some(
+            (item) => item.orderRowKey === orderRowKey,
+          );
+          if (hasSelectedItems) {
+            orderRows.push(node);
+          }
+        }
+      });
+      if (orderRows.length > 0) {
+        orderGridInfo.api?.redrawRows({ rowNodes: orderRows });
+      }
       orderGridInfo.api?.forEachDetailGridInfo((itemGridInfo) => {
         const rows: any[] = [];
         itemGridInfo.api?.forEachNode((node) => {

@@ -217,7 +217,12 @@ export default function useOrderGrid() {
             ]?.some((order) => getOrderRowKey(order) === getOrderRowKey(params.data) && !params.node.detail);
         },
       "border-b-main-sky-500! border-b-2! border-dashed!": (params) => {
-        if (params.node.detail || params.node.expanded) return false;
+        if (
+          params.node.detail ||
+          params.node.expanded ||
+          !useEventStore.getState().isCopyItem
+        )
+          return false;
         const orderRowKey = getOrderRowKey(params.data);
         return Array.from(useEventStore.getState().selectedItems.values()).some(
           (item) => item.orderRowKey === orderRowKey,
@@ -415,9 +420,9 @@ export default function useOrderGrid() {
           onRowGroupOpened: (_event: RowGroupOpenedEvent<EventOrderProps>) => {
             const orderRowKey = getOrderRowKey(_event.data!);
             const { selectedItems, isCopyItem } = useEventStore.getState();
-            const hasSelectedItems = Array.from(
-              selectedItems.values(),
-            ).some((item) => item.orderRowKey === orderRowKey);
+            const hasSelectedItems = Array.from(selectedItems.values()).some(
+              (item) => item.orderRowKey === orderRowKey,
+            );
             if (hasSelectedItems && isCopyItem) {
               _event.api.redrawRows({ rowNodes: [_event.node] });
             }
