@@ -95,7 +95,6 @@ export default function ItemSearchDrawer({
     });
 
     if (orders.length === 1) {
-      newItems = addItemInfoFromOrder(newItems, orders[0]);
       orders[0].items = newItems;
     } else {
       for (const order of orders) {

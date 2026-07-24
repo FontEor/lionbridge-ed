@@ -28,10 +28,16 @@ export default function ItemResultActionRenderer({
 
   const addItemToOrder = debounce(() => {
     let quantityOrdered = null;
+    let serveDtTm = null;
+    let quantityGuaranteed = null;
+
     if (Object.keys(selectedEventOrders).length === 1) {
       for (const rowKey in selectedEventOrders) {
         if (selectedEventOrders[rowKey].length === 1) {
+          serveDtTm = selectedEventOrders[rowKey][0].startDateTime;
           quantityOrdered = selectedEventOrders[rowKey][0].attendanceEstimate;
+          quantityGuaranteed =
+            selectedEventOrders[rowKey][0].attendanceGuarantee;
         }
       }
     }
@@ -57,7 +63,9 @@ export default function ItemResultActionRenderer({
           catalogTypeLookupSid: data.catalogTypeCode,
           pricePointLookupSid: data.itemPrices?.[0]?.pricePointLookupSid,
           sectionLookupSid: data.sectionCode,
+          ...(serveDtTm != null && { serveDtTm }),
           quantityOrdered: quantityOrdered ?? 0,
+          ...(quantityGuaranteed != null && { quantityGuaranteed }),
           itemPrice: data.itemPrices?.[0]?.standardPrice,
         },
       ],
