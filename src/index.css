@@ -258,17 +258,12 @@ body {
       @apply cursor-not-allowed;
       .ag-pinned-right-cols-container {
         @apply w-0.5! max-w-0.5!;
+        @apply border-b-0!;
+        @apply border-r-0!;
       }
     }
-    [row-id^="item_"].ag-row-last.border-dashed::after {
-      content: "";
-      position: absolute;
-      left: -2px;
-      right: 0;
-      bottom: -0.7px;
-      width: 110%;
-      border-bottom: 2px dashed var(--color-main-sky-500);
-      pointer-events: none;
+    [row-id^="item_"].ag-row-last.border-dashed {
+      @apply h-8!;
     }
     .ag-details-grid {
       @apply pointer-events-none;
